@@ -10,6 +10,9 @@ app = Flask(__name__)
 MODEL_DIR = "models"
 os.makedirs(MODEL_DIR, exist_ok=True)
 
+ACTOR_MODEL_PATH = os.path.join(MODEL_DIR, "actor_model.h5")
+CRITIC_MODEL_PATH = os.path.join(MODEL_DIR, "critic_model.h5")
+
 # ----------------------------
 # Upload Model API
 # ----------------------------
@@ -18,15 +21,12 @@ def upload_model():
     try:
         if 'actor_model' not in request.files or 'critic_model' not in request.files:
             return jsonify({"error": "Missing model files"}), 400
-        
-        actor_model_path = os.path.join(MODEL_DIR, "actor_model.h5")
-        critic_model_path = os.path.join(MODEL_DIR, "critic_model.h5")
-        
-        request.files['actor_model'].save(actor_model_path)
-        request.files['critic_model'].save(critic_model_path)
+
+        request.files['actor_model'].save(ACTOR_MODEL_PATH)
+        request.files['critic_model'].save(CRITIC_MODEL_PATH)
         
         return jsonify({"message": "Models uploaded successfully!"}), 200
-    
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -39,25 +39,28 @@ def test_model():
         if 'file' not in request.files:
             return jsonify({"error": "No test file uploaded"}), 400
 
+        if not os.path.exists(ACTOR_MODEL_PATH) or not os.path.exists(CRITIC_MODEL_PATH):
+            return jsonify({"error": "Models not found. Upload models first!"}), 400
+
         # Load test dataset
         file = request.files['file']
         test_data = pd.read_csv(file)
-        
-        # Load saved models
-        actor = tf.keras.models.load_model(os.path.join(MODEL_DIR, "actor_model.h5"))
-        critic = tf.keras.models.load_model(os.path.join(MODEL_DIR, "critic_model.h5"))
+
+        # Load models only once
+        actor = tf.keras.models.load_model(ACTOR_MODEL_PATH)
+        critic = tf.keras.models.load_model(CRITIC_MODEL_PATH)
 
         results = []
-        
         total_loss = 0
+
         for _, row in test_data.iterrows():
             state = np.array([
-                row['TransmissionPower'], 
-                row['CurrentChannelPowerGain'], 
-                row['CrossChannelPowerGain'], 
+                row['TransmissionPower'],
+                row['CurrentChannelPowerGain'],
+                row['CrossChannelPowerGain'],
                 row['QoSScore']
             ], dtype=np.float32)
-            
+
             state = np.expand_dims(state, axis=0)
             action_probs = actor.predict(state, verbose=0)[0]
             chosen_action = np.argmax(action_probs)
@@ -89,7 +92,14 @@ def test_model():
         return jsonify({"error": str(e)}), 500
 
 # ----------------------------
+# Health Check Endpoint
+# ----------------------------
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "running"}), 200
+
+# ----------------------------
 # Run the Flask App
 # ----------------------------
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000)
