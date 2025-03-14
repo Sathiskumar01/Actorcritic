@@ -39,6 +39,25 @@ class ActorNet(tf.keras.Model):
         """Recreate the model from the config dictionary."""
         return cls(**config)
 
+class CriticNet(tf.keras.Model):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.dense1 = tf.keras.layers.Dense(64, activation="relu")
+        self.dense2 = tf.keras.layers.Dense(1)  # Value output
+
+    def call(self, inputs):
+        x = self.dense1(inputs)
+        return self.dense2(x)
+
+    def get_config(self):
+        config = super().get_config()
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        config.pop("trainable", None)  # Ignore 'trainable' if it exists
+        return cls(**config)
+
 # ----------------------------
 # ✅ Upload Model API
 # ----------------------------
