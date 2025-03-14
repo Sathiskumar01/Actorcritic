@@ -24,6 +24,21 @@ class ActorNet(tf.keras.Model):
         x = self.dense1(inputs)
         return self.dense2(x)
 
+    def call(self, inputs):
+        x = self.dense1(inputs)
+        return self.dense2(x)
+
+    def get_config(self):
+        """Ensure the model can be serialized/deserialized correctly."""
+        config = super().get_config()
+        config.update({"output_dim": self.output_dim})
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        """Recreate the model from the config dictionary."""
+        return cls(**config)
+
 # ----------------------------
 # ✅ Upload Model API
 # ----------------------------
