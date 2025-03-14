@@ -24,9 +24,7 @@ class ActorNet(tf.keras.Model):
         x = self.dense1(inputs)
         return self.dense2(x)
 
-    def call(self, inputs):
-        x = self.dense1(inputs)
-        return self.dense2(x)
+   
 
     def get_config(self):
         """Ensure the model can be serialized/deserialized correctly."""
