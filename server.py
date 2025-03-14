@@ -14,9 +14,12 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 # ----------------------------
 # ✅ Custom Model (ActorNet)
 # ----------------------------
+
+
 class ActorNet(tf.keras.Model):
-    def __init__(self, output_dim):
-        super().__init__()
+    def __init__(self, output_dim, trainable=True, **kwargs):
+        super().__init__(**kwargs)
+        self.output_dim = output_dim
         self.dense1 = tf.keras.layers.Dense(64, activation="relu")
         self.dense2 = tf.keras.layers.Dense(output_dim, activation="softmax")
 
@@ -24,24 +27,24 @@ class ActorNet(tf.keras.Model):
         x = self.dense1(inputs)
         return self.dense2(x)
 
-   
-
     def get_config(self):
-        """Ensure the model can be serialized/deserialized correctly."""
         config = super().get_config()
-        config.update({"output_dim": self.output_dim})
+        config.update({
+            "output_dim": self.output_dim,
+            "trainable": self.trainable  # ✅ Explicitly add trainable
+        })
         return config
 
     @classmethod
     def from_config(cls, config):
-        """Recreate the model from the config dictionary."""
         return cls(**config)
 
+
 class CriticNet(tf.keras.Model):
-    def __init__(self, **kwargs):
+    def __init__(self, trainable=True, **kwargs):
         super().__init__(**kwargs)
         self.dense1 = tf.keras.layers.Dense(64, activation="relu")
-        self.dense2 = tf.keras.layers.Dense(1)  # Value output
+        self.dense2 = tf.keras.layers.Dense(1)
 
     def call(self, inputs):
         x = self.dense1(inputs)
@@ -49,12 +52,13 @@ class CriticNet(tf.keras.Model):
 
     def get_config(self):
         config = super().get_config()
+        config.update({"trainable": self.trainable})  # ✅ Explicitly add trainable
         return config
 
     @classmethod
     def from_config(cls, config):
-        config.pop("trainable", None)  # Ignore 'trainable' if it exists
         return cls(**config)
+
 
 # ----------------------------
 # ✅ Upload Model API
